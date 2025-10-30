@@ -1,0 +1,8 @@
+node_modules
+.next
+tsconfig.tsbuildinfo
+.DS_Store
+yarn.lock
+pnpm-lock.yaml
+.env.local
+.env

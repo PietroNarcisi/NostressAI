@@ -1,0 +1,149 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  font-family: var(--font-sans);
+}
+
+.blog-article > p:first-of-type {
+  font-size: 1.15rem;
+  line-height: 1.8;
+  color: #4b5563;
+  position: relative;
+}
+
+.dark .blog-article > p:first-of-type {
+  color: #d1d5db;
+}
+
+.blog-article > p:first-of-type::first-letter {
+  font-family: var(--font-serif);
+  font-size: 3.75rem;
+  line-height: .85;
+  font-weight: 600;
+  margin-right: .35rem;
+  float: left;
+  color: #6b908f;
+}
+
+.dark .blog-article > p:first-of-type::first-letter {
+  color: #9dd6d1;
+}
+
+.blog-article h2 {
+  font-family: var(--font-serif);
+  font-size: clamp(1.75rem, 2.2vw, 2.4rem);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin-top: 3.5rem;
+  margin-bottom: 1.5rem;
+  color: #1f2937;
+}
+
+.dark .blog-article h2 {
+  color: #e5e7eb;
+}
+
+.blog-article h3 {
+  font-family: var(--font-serif);
+  font-size: clamp(1.3rem, 1.6vw, 1.5rem);
+  font-weight: 600;
+  margin-top: 2.5rem;
+  margin-bottom: 1rem;
+  color: #334155;
+}
+
+.dark .blog-article h3 {
+  color: #e2e8f0;
+}
+
+.blog-article ul,
+.blog-article ol {
+  padding-left: 1.5rem;
+  margin-bottom: 1.75rem;
+  color: #4b5563;
+}
+
+.dark .blog-article ul,
+.dark .blog-article ol {
+  color: #d1d5db;
+}
+
+.blog-article ul li::marker {
+  color: #6b908f;
+}
+
+.blog-article ol li::marker {
+  color: #b7791f;
+  font-weight: 600;
+}
+
+.blog-article a {
+  color: #6b908f;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(107, 144, 143, 0.3);
+  transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.blog-article a:hover {
+  color: #4c7a75;
+  border-color: rgba(76, 122, 117, 0.6);
+}
+
+.dark .blog-article a {
+  color: #9dd6d1;
+  border-color: rgba(157, 214, 209, 0.4);
+}
+
+.blog-article hr {
+  margin: 3rem 0;
+  border-color: rgba(107, 144, 143, 0.2);
+}
+
+.dark .blog-article hr {
+  border-color: rgba(157, 214, 209, 0.2);
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-serif);
+}
+
+/* Section fade-in animation */
+[data-fade-section] {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity .7s ease, transform .9s cubic-bezier(.16,.84,.24,1);
+  will-change: opacity, transform;
+}
+.fade-in-visible {
+  opacity: 1 !important;
+  transform: translateY(0) !important;
+}
+
+.site-container {
+  max-width: 1080px;
+  margin-left: auto;
+  margin-right: auto;
+  width: 100%;
+}
+
+@media (min-width: 1536px) {
+  .site-container { max-width: 1200px; }
+}
+
+html.dark {
+  color-scheme: dark;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+.prose code {
+  font-weight: 500;
+}
+
+.prose pre code {
+  font-weight: 400;
+}
