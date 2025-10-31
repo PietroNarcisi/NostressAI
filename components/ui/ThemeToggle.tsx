@@ -43,8 +43,9 @@ export function ThemeToggle() {
   if (!mounted) return null;
   return (
     <Button
-      variant="ghost"
+      variant="outline"
       size="icon"
+      className="h-11 w-11 border-neutral-200 bg-white/80 text-neutral-700 shadow-sm hover:border-primary-200 hover:bg-primary-50 dark:border-neutral-700 dark:bg-neutral-800/80 dark:text-neutral-100 dark:hover:border-primary-600 dark:hover:bg-neutral-800"
       onClick={() => {
         const next = dark ? 'light' : 'dark';
         applyTheme(next);

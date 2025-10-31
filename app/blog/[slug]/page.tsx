@@ -84,7 +84,7 @@ export default async function BlogPost({ params }: { params: { slug: string } })
               {meta.category}
             </p>
           )}
-          <h1 className="text-4xl md:text-5xl font-semibold leading-tight tracking-tight bg-gradient-to-r from-primary-500 via-teal-500 to-sky-500 bg-clip-text text-transparent">
+          <h1 className="text-4xl md:text-5xl font-semibold leading-tight tracking-tight text-primary-700 dark:text-primary-200">
             {meta.title || params.slug.replace(/-/g, ' ')}
           </h1>
           <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-neutral-500 dark:text-neutral-400">

@@ -36,14 +36,14 @@ export function ArticleShell({ children, toc, breadcrumb, className }: ArticleSh
   return (
     <div className={clsx('relative', className)} ref={containerRef}>
       <div className="flex gap-10">
-        <main
-          className={clsx(
-            'transition-[max-width] duration-300 ease-out mx-auto',
-            readingWide ? 'max-w-[1100px]' : 'max-w-[860px] xl:max-w-[920px]'
-          )}
-        >
+        <main className="flex-1">
           {breadcrumb && <div className="mb-6 text-sm text-neutral-500 dark:text-neutral-400" aria-label="Breadcrumb">{breadcrumb}</div>}
-          <div className="relative">
+          <div
+            className={clsx(
+              'relative mx-auto w-full transition-[max-width] duration-300 ease-out',
+              readingWide ? 'max-w-[1100px]' : 'max-w-[860px] xl:max-w-[920px]'
+            )}
+          >
             <button
               type="button"
               onClick={() => setReadingWide((v) => !v)}

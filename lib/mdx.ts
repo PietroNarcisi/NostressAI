@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import matter from 'gray-matter';
 import { compile } from '@mdx-js/mdx';
+import remarkGfm from 'remark-gfm';
 import { getHighlighter } from 'shiki';
 
 export interface CompiledPost {
@@ -51,7 +52,8 @@ export async function getPostMdx(slug: string): Promise<CompiledPost | null> {
     await compile(transformed, {
       outputFormat: 'function-body',
       development: false,
-      jsxRuntime: 'automatic'
+      jsxRuntime: 'automatic',
+      remarkPlugins: [remarkGfm]
     })
   );
 
