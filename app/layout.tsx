@@ -39,6 +39,8 @@ export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning className={`${workSans.variable} ${playfair.variable} h-full`}>
       <head>
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <link rel="apple-touch-icon" href="/favicon.svg" />
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className="min-h-full flex flex-col font-sans antialiased bg-neutral-25 dark:bg-neutral-900 text-neutral-700 dark:text-neutral-100 transition-colors duration-300">
