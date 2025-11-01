@@ -1,8 +1,8 @@
 import { MetadataRoute } from 'next';
 import { getAllPosts } from '@/lib/blog';
-import { formations } from '@/lib/formations';
+import { listFormations } from '@/lib/server/formations';
 
-export default function sitemap(): MetadataRoute.Sitemap {
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = 'https://www.nostress.ai';
   const staticPages = [
     '',
@@ -17,8 +17,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
     '/interactive/resilient-child',
     '/interactive/research-brief'
   ];
-  const posts = getAllPosts().map((p) => `/blog/${p.slug}`);
-  const forms = formations.map((f) => `/courses/${f.slug}`);
+
+  const [posts, formations] = await Promise.all([getAllPosts(), listFormations()]);
+  const postUrls = posts.map((p) => `/blog/${p.slug}`);
+  const formationUrls = formations.map((f) => `/courses/${f.slug}`);
   const now = new Date().toISOString();
-  return [...staticPages, ...posts, ...forms].map((u) => ({ url: base + u, lastModified: now }));
+
+  return [...staticPages, ...postUrls, ...formationUrls].map((u) => ({ url: base + u, lastModified: now }));
 }

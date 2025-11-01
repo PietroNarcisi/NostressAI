@@ -3,8 +3,8 @@ import { SectionHeading } from '@/components/ui/SectionHeading';
 
 export const dynamic = 'force-static';
 
-export default function RessourcesPage() {
-  const items = getAllResources();
+export default async function RessourcesPage() {
+  const items = await getAllResources();
   const tips = items.filter((i) => i.type === 'tip');
   const studies = items.filter((i) => i.type === 'study');
   return (

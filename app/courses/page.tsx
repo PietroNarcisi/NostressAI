@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { SectionHeading } from '@/components/ui/SectionHeading';
 import { Card } from '@/components/ui/Card';
-import { formations } from '@/lib/formations';
+import { listFormations } from '@/lib/server/formations';
 import type { FormationStatus } from '@/lib/types';
 
 const statusLabel: Record<FormationStatus, string> = {
@@ -10,7 +10,8 @@ const statusLabel: Record<FormationStatus, string> = {
   available: 'Available'
 };
 
-export default function CoursesIndex() {
+export default async function CoursesIndex() {
+  const formations = await listFormations();
   return (
     <div>
       <SectionHeading title="Courses" eyebrow="Programs" />

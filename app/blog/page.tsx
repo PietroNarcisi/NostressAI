@@ -8,8 +8,8 @@ import { PILLAR_IDS } from '@/lib/pillars';
 
 export const dynamic = 'force-static';
 
-export default function BlogIndex({ searchParams }: { searchParams?: { pillar?: string } }) {
-  const posts = getAllPosts();
+export default async function BlogIndex({ searchParams }: { searchParams?: { pillar?: string } }) {
+  const posts = await getAllPosts();
   const pillarParam = searchParams?.pillar;
   const activePillar = pillarParam && PILLAR_IDS.includes(pillarParam as HolisticPillar) ? (pillarParam as HolisticPillar) : undefined;
   const filteredPosts = activePillar ? posts.filter((post) => post.pillars?.includes(activePillar)) : posts;

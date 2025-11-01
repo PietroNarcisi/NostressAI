@@ -12,8 +12,9 @@ import { PillarBadge } from '@/components/ui/PillarBadge';
 import * as runtime from 'react/jsx-runtime';
 import React from 'react';
 
-export function generateStaticParams() {
-  return getAllPosts().map((p) => ({ slug: p.slug }));
+export async function generateStaticParams() {
+  const posts = await getAllPosts();
+  return posts.map((p) => ({ slug: p.slug }));
 }
 
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {

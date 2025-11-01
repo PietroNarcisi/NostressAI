@@ -7,8 +7,8 @@ import { PILLAR_IDS } from '@/lib/pillars';
 
 export const dynamic = 'force-static';
 
-export default function ResourcesPage({ searchParams }: { searchParams?: { pillar?: string } }) {
-  const items = getAllResources();
+export default async function ResourcesPage({ searchParams }: { searchParams?: { pillar?: string } }) {
+  const items = await getAllResources();
   const pillarParam = searchParams?.pillar;
   const activePillar = pillarParam && PILLAR_IDS.includes(pillarParam as HolisticPillar) ? (pillarParam as HolisticPillar) : undefined;
   const filteredItems = activePillar ? items.filter((item) => item.pillars?.includes(activePillar)) : items;

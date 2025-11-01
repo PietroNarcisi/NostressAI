@@ -4,7 +4,10 @@ export type HolisticPillar =
   | 'sleep'
   | 'mind-body'
   | 'ai-tools'
-  | 'analog-tools';
+  | 'analog-tools'
+  | 'neuroplasticity'
+  | 'societal-impact'
+  | 'purpose';
 
 export interface BlogMeta {
   slug: string;

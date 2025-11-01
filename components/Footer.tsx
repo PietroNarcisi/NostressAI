@@ -58,6 +58,14 @@ export function Footer() {
                 </li>
               ))}
               <li>
+                <Link
+                  href="/login"
+                  className="transition-colors hover:text-primary-600 dark:hover:text-primary-300"
+                >
+                  Admin login
+                </Link>
+              </li>
+              <li>
                 <a
                   href="mailto:care@nostress.ai"
                   className="transition-colors hover:text-primary-600 dark:hover:text-primary-300"

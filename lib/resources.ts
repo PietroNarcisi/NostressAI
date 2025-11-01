@@ -1,66 +1,71 @@
-import fs from 'fs';
-import path from 'path';
-import { ResourceMeta, ResourceType, HolisticPillar } from '@/lib/types';
+'use server';
 
-function parseFrontmatter(raw: string): Partial<ResourceMeta> {
-  const match = raw.match(/^---[\r\n]+([\s\S]*?)---/);
-  const meta: any = {};
-  if (!match) return meta;
-  match[1]
-    .split(/\r?\n/)
-    .map((l) => l.trim())
-    .filter(Boolean)
-    .forEach((line) => {
-      const [k, ...rest] = line.split(':');
-      const key = k.trim();
-      const value = rest.join(':').trim();
-      if (key === 'title') meta.title = value.replace(/^"|"$/g, '');
-      else if (key === 'type') meta.type = value as ResourceType;
-      else if (key === 'tags') {
-        meta.tags = value
-          .replace(/^[\[]|[\]]$/g, '')
-          .split(',')
-          .map((t) => t.replace(/['"\[\]]/g, '').trim())
-          .filter(Boolean);
-      } else if (key === 'excerpt') meta.excerpt = value.replace(/^"|"$/g, '');
-      else if (key === 'date') meta.date = value;
-      else if (key === 'pillars') {
-        meta.pillars = value
-          .replace(/^[\[]|[\]]$/g, '')
-          .split(',')
-          .map((t) => t.replace(/['"\[\]]/g, '').trim())
-          .filter(Boolean) as HolisticPillar[];
-      }
-    });
-  return meta;
+import { getSupabaseServiceClient } from '@/lib/supabaseClient';
+import type { ResourceMeta, HolisticPillar } from '@/lib/types';
+
+interface ResourceRow {
+  id: string;
+  slug: string;
+  type: string;
+  title: string;
+  excerpt: string | null;
+  tags: string[] | null;
+  published_at: string | null;
+  status: string | null;
 }
 
-export function getAllResources(): ResourceMeta[] {
-  const base = path.join(process.cwd(), 'content');
-  const types: Array<{ dir: string; type: ResourceType }> = [
-    { dir: 'tips', type: 'tip' },
-    { dir: 'studies', type: 'study' }
-  ];
-  const items: ResourceMeta[] = [];
-  types.forEach(({ dir, type }) => {
-    const full = path.join(base, dir);
-    if (!fs.existsSync(full)) return;
-    fs.readdirSync(full)
-      .filter((f) => f.endsWith('.mdx'))
-      .forEach((file) => {
-        const slug = file.replace(/\.mdx$/, '');
-        const raw = fs.readFileSync(path.join(full, file), 'utf-8');
-        const meta = parseFrontmatter(raw);
-        items.push({
-          slug: `${type}-${slug}`,
-          title: meta.title || slug,
-          type,
-          tags: meta.tags || [],
-          date: meta.date || new Date().toISOString(),
-          excerpt: meta.excerpt,
-          pillars: Array.isArray(meta.pillars) ? (meta.pillars as HolisticPillar[]) : undefined
-        });
-      });
+export async function getAllResources(): Promise<ResourceMeta[]> {
+  const supabase = getSupabaseServiceClient();
+
+  const [resourceResult, pivotResult, pillarResult] = await Promise.all([
+    supabase
+      .from('resources')
+      .select('id, slug, type, title, excerpt, tags, published_at, status')
+      .order('published_at', { ascending: false }),
+    supabase.from('resource_pillars').select('resource_id, pillar_id'),
+    supabase.from('pillars').select('id, slug')
+  ]);
+
+  if (resourceResult.error) {
+    throw new Error(`Failed to load resources: ${resourceResult.error.message}`);
+  }
+  if (pivotResult.error) {
+    throw new Error(`Failed to load resource pillars: ${pivotResult.error.message}`);
+  }
+  if (pillarResult.error) {
+    throw new Error(`Failed to load pillars: ${pillarResult.error.message}`);
+  }
+
+  const rows = (resourceResult.data ?? []).filter((row) => row.status === 'published');
+  const pivotRows = pivotResult.data ?? [];
+  const pillarRows = pillarResult.data ?? [];
+
+  const pillarMap = new Map<string, string>();
+  pillarRows.forEach((row) => {
+    pillarMap.set(row.id, row.slug);
   });
-  return items.sort((a, b) => (a.date < b.date ? 1 : -1));
+
+  const resourcePillars = new Map<string, HolisticPillar[]>();
+  pivotRows.forEach((pivot) => {
+    const slug = pillarMap.get(pivot.pillar_id);
+    if (!slug) return;
+    const list = resourcePillars.get(pivot.resource_id) ?? [];
+    list.push(slug as HolisticPillar);
+    resourcePillars.set(pivot.resource_id, list);
+  });
+
+  return rows.map((row) => mapResourceRow(row, resourcePillars.get(row.id)));
+}
+
+function mapResourceRow(row: ResourceRow, pillars?: HolisticPillar[]): ResourceMeta {
+  const publishedAt = row.published_at ? new Date(row.published_at).toISOString() : new Date().toISOString();
+  return {
+    slug: row.slug,
+    title: row.title,
+    type: row.type as ResourceMeta['type'],
+    tags: row.tags ?? [],
+    date: publishedAt,
+    excerpt: row.excerpt ?? undefined,
+    pillars: pillars?.length ? pillars : undefined
+  };
 }

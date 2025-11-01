@@ -54,5 +54,28 @@ Your **MDX** content here.
 - Add automated tests (Playwright or Jest) when the product stabilises
 - Enrich each MDX article/resource with `pillars: []` metadata so the holistic map surfaces richer recommendations
 
+## Supabase integration
+1. Create a Supabase project and note the project URL plus anon/service keys.  
+2. Duplicate `.env.example` to `.env.local` and fill in `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY`.  
+3. Apply migrations:  
+   ```bash
+   npx supabase db push
+   ```  
+4. Seed reference data:  
+   ```bash
+   npm run seed:pillars
+   npm run seed:formations
+   npm run seed:articles
+   npm run seed:resources
+   ```  
+5. The `avatars` storage bucket is created by the migrations; if you created the project earlier, ensure a public bucket named `avatars` exists in Supabase Storage.  
+6. Enable the **Google** provider in Supabase Auth and set the callback URL to `<site-url>/auth/callback`.  
+7. Server-side renders use the service client (`lib/supabaseClient.ts`), while server actions/components use the auth-aware helpers in `lib/supabase/auth.ts`.
+
+## Admin access
+- Create an email/password user in Supabase Auth and set their `profiles.role` to `admin` via the Supabase dashboard.  
+- Visit `/login` to sign in. Successful auth redirects to `/admin`, a protected dashboard that surfaces quick counts for articles, formations, and resources.  
+- Use the “Sign out” button in the admin header to clear the session. Non-admin accounts are automatically signed out with an error message.
+
 ## Licence
 MIT

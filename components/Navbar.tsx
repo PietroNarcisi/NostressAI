@@ -1,9 +1,10 @@
-'use client';
+"use client";
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { ThemeToggle } from './ui/ThemeToggle';
 import { MobileMenu } from './ui/MobileMenu';
+import { ProfileMenu } from '@/components/ui/ProfileMenu';
 
 const navLinks = [
   { href: '/approach', label: 'Approach' },
@@ -17,6 +18,7 @@ const navLinks = [
 
 export function Navbar() {
   const pathname = usePathname();
+
   return (
     <header className="sticky top-0 z-50 border-b border-neutral-100/80 bg-neutral-25/80 backdrop-blur-lg supports-[backdrop-filter]:bg-neutral-25/80 dark:border-neutral-800/60 dark:bg-neutral-900/70">
       <div className="site-container relative flex h-16 items-center justify-center px-4">
@@ -48,6 +50,7 @@ export function Navbar() {
           </ul>
         </nav>
         <div className="absolute inset-y-0 right-4 flex items-center gap-2 md:right-6">
+          <ProfileMenu />
           <ThemeToggle />
         </div>
       </div>

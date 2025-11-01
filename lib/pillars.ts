@@ -1,5 +1,5 @@
 import type { HolisticPillar } from '@/lib/types';
-import { Leaf, Moon, HeartPulse, Workflow, Bot, Palette } from 'lucide-react';
+import { Leaf, Moon, HeartPulse, Workflow, Bot, Palette, BrainCircuit, Globe2, Target } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 export interface PillarDefinition {
@@ -72,6 +72,36 @@ export const HOLISTIC_PILLARS: PillarDefinition[] = [
     accentLight: 'bg-[#F6EFE9] text-[#8A6247]',
     accentDark: 'dark:bg-[#3B2B23] dark:text-[#E3C9B8]',
     icon: Palette
+  },
+  {
+    id: 'neuroplasticity',
+    name: 'Neuroplasticity',
+    tagline: 'Train the brain to adapt and recover.',
+    description:
+      'Habits, learning sprints, and mindful rehearsal that reshape neural pathways so stress responses become more flexible and resilient.',
+    accentLight: 'bg-[#EEF2FF] text-[#4338CA]',
+    accentDark: 'dark:bg-[#312E81] dark:text-[#C7D2FE]',
+    icon: BrainCircuit
+  },
+  {
+    id: 'societal-impact',
+    name: 'Societal Impact',
+    tagline: 'Contextualise stressors in the systems around us.',
+    description:
+      'Macro-level research on policy, economics, and cultural shifts that influence daily stress loads—because self-care lives within shared structures.',
+    accentLight: 'bg-[#E6F4FF] text-[#0F4C81]',
+    accentDark: 'dark:bg-[#1E3A5F] dark:text-[#B8D4F6]',
+    icon: Globe2
+  },
+  {
+    id: 'purpose',
+    name: 'Purpose & Direction',
+    tagline: 'Align decisions with what actually matters.',
+    description:
+      'Frameworks for meaning-making, value audits, and future casting so actions stay connected to a motivating personal narrative.',
+    accentLight: 'bg-[#FDF4FF] text-[#86198F]',
+    accentDark: 'dark:bg-[#3B0F3F] dark:text-[#F5D0FE]',
+    icon: Target
   }
 ];
 

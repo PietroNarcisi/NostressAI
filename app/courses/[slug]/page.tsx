@@ -1,15 +1,16 @@
-import { formations, getFormation } from '@/lib/formations';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
 import { PillarBadge } from '@/components/ui/PillarBadge';
+import { listFormations, getFormationBySlug } from '@/lib/server/formations';
 
-export function generateStaticParams() {
+export async function generateStaticParams() {
+  const formations = await listFormations();
   return formations.map((formation) => ({ slug: formation.slug }));
 }
 
-export default function CoursePage({ params }: { params: { slug: string } }) {
-  const formation = getFormation(params.slug);
+export default async function CoursePage({ params }: { params: { slug: string } }) {
+  const formation = await getFormationBySlug(params.slug);
   if (!formation) return notFound();
 
   return (
