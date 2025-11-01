@@ -3,6 +3,8 @@ import type { ReactNode } from 'react';
 import { Work_Sans, Playfair_Display } from 'next/font/google';
 import { Navbar } from '@/components/Navbar';
 import { Footer } from '@/components/Footer';
+import { AuthProvider } from '@/lib/auth-context';
+import { createSupabaseServerComponentClient } from '@/lib/supabase/auth';
 
 const workSans = Work_Sans({
   subsets: ['latin'],
@@ -33,9 +35,32 @@ export const metadata = {
   }
 };
 
-export default function RootLayout({ children }: { children: ReactNode }) {
+export default async function RootLayout({ children }: { children: ReactNode }) {
   // Inline script executed before React hydration to persist the chosen theme without flicker
   const themeScript = `(()=>{try{const ls=localStorage.getItem('theme');const mql=window.matchMedia('(prefers-color-scheme: dark)');const wantDark = ls? ls==='dark' : mql.matches; if(wantDark) document.documentElement.classList.add('dark'); else document.documentElement.classList.remove('dark'); document.documentElement.dataset.theme = wantDark ? 'dark' : 'light';}catch(e){}})();`;
+
+  const supabase = createSupabaseServerComponentClient();
+  const {
+    data: { session }
+  } = await supabase.auth.getSession();
+
+  let initialProfile: { displayName: string | null; avatarUrl: string | null; role: string | null } | null = null;
+
+  const user = session?.user ?? null;
+  if (user) {
+    const { data: profileRow } = await supabase
+      .from('profiles')
+      .select('display_name, avatar_url, role')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    initialProfile = {
+      displayName: profileRow?.display_name ?? null,
+      avatarUrl: profileRow?.avatar_url ?? null,
+      role: profileRow?.role ?? null
+    };
+  }
+
   return (
     <html lang="en" suppressHydrationWarning className={`${workSans.variable} ${playfair.variable} h-full`}>
       <head>
@@ -44,11 +69,13 @@ export default function RootLayout({ children }: { children: ReactNode }) {
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body className="min-h-full flex flex-col font-sans antialiased bg-neutral-25 dark:bg-neutral-900 text-neutral-700 dark:text-neutral-100 transition-colors duration-300">
-        <Navbar />
-        <main className="flex-1 py-8">
-          <div className="site-container px-4">{children}</div>
-        </main>
-        <Footer />
+        <AuthProvider initialSession={session} initialProfile={initialProfile}>
+          <Navbar />
+          <main className="flex-1 py-8">
+            <div className="site-container px-4">{children}</div>
+          </main>
+          <Footer />
+        </AuthProvider>
       </body>
     </html>
   );

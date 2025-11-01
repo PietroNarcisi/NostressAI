@@ -7,6 +7,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/AvatarFallb
 import { Button } from '@/components/ui/Button';
 import { Loader2 } from 'lucide-react';
 import { PRESET_AVATARS } from '@/lib/profile-presets';
+import { useAuth } from '@/lib/auth-context';
 
 interface ProfileFormProps {
   displayName: string | null;
@@ -36,6 +37,7 @@ export function ProfileForm({ displayName, avatarUrl, email, role }: ProfileForm
   const [persistedAvatar, setPersistedAvatar] = useState<string | null>(avatarUrl);
   const [preview, setPreview] = useState<string | null>(avatarUrl);
   const [currentDisplayName, setCurrentDisplayName] = useState<string | null>(displayName);
+  const { refresh } = useAuth();
 
   useEffect(() => {
     setPersistedAvatar(avatarUrl);
@@ -52,6 +54,7 @@ export function ProfileForm({ displayName, avatarUrl, email, role }: ProfileForm
       setPersistedAvatar(nextAvatarUrl);
       setCurrentDisplayName(nextDisplayName);
       setSelectedAvatar('unchanged');
+      void refresh();
       if (typeof window !== 'undefined') {
         window.dispatchEvent(
           new CustomEvent('profile:updated', {
@@ -63,7 +66,7 @@ export function ProfileForm({ displayName, avatarUrl, email, role }: ProfileForm
         );
       }
     }
-  }, [currentDisplayName, persistedAvatar, state.avatarUrl, state.displayName, state.success]);
+  }, [currentDisplayName, persistedAvatar, refresh, state.avatarUrl, state.displayName, state.success]);
 
   const initials = useMemo(() => {
     const source = currentDisplayName || email;

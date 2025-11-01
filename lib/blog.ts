@@ -1,71 +1,73 @@
 'use server';
 
-import type { BlogMeta, HolisticPillar } from '@/lib/types';
-import { getSupabaseServiceClient } from '@/lib/supabaseClient';
+import fs from 'fs/promises';
+import path from 'path';
+import matter from 'gray-matter';
 
-interface ArticleRow {
-  id: string;
-  slug: string;
-  title: string;
-  excerpt: string | null;
-  category: string | null;
-  tags: string[] | null;
-  published_at: string | null;
-  status: string | null;
+import type { BlogMeta, HolisticPillar } from '@/lib/types';
+
+const BLOG_CONTENT_DIR = path.join(process.cwd(), 'content', 'blog');
+
+function normaliseDate(value: unknown): string {
+  if (!value) return new Date().toISOString();
+  const date = value instanceof Date ? value : new Date(String(value));
+  return Number.isNaN(date.getTime()) ? new Date().toISOString() : date.toISOString();
+}
+
+function createExcerpt(rawContent: string, frontmatterExcerpt?: unknown): string | undefined {
+  if (typeof frontmatterExcerpt === 'string' && frontmatterExcerpt.trim()) {
+    return frontmatterExcerpt.trim();
+  }
+  const plain = rawContent
+    .replace(/`{3}[\s\S]*?`{3}/g, '')
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/\[(.*?)\]\([^)]*\)/g, '$1')
+    .replace(/[*_>#-]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!plain) return undefined;
+  return plain.slice(0, 180) + (plain.length > 180 ? '…' : '');
 }
 
 export async function getAllPosts(): Promise<BlogMeta[]> {
-  const supabase = getSupabaseServiceClient();
-
-  const [articlesResult, pivotResult, pillarResult] = await Promise.all([
-    supabase
-      .from('articles')
-      .select('id, slug, title, excerpt, category, tags, published_at, status')
-      .order('published_at', { ascending: false }),
-    supabase.from('article_pillars').select('article_id, pillar_id'),
-    supabase.from('pillars').select('id, slug')
-  ]);
-
-  if (articlesResult.error) {
-    throw new Error(`Failed to load articles: ${articlesResult.error.message}`);
-  }
-  if (pivotResult.error) {
-    throw new Error(`Failed to load article pillars: ${pivotResult.error.message}`);
-  }
-  if (pillarResult.error) {
-    throw new Error(`Failed to load pillars: ${pillarResult.error.message}`);
+  let entries: string[] = [];
+  try {
+    entries = await fs.readdir(BLOG_CONTENT_DIR);
+  } catch (error) {
+    console.error('[blog] Unable to read blog directory:', error);
+    return [];
   }
 
-  const articles = (articlesResult.data ?? []).filter((article) => article.status === 'published');
-  const pivotRows = pivotResult.data ?? [];
-  const pillarRows = pillarResult.data ?? [];
+  const mdxFiles = entries.filter((file) => file.endsWith('.mdx'));
 
-  const pillarMap = new Map<string, string>();
-  pillarRows.forEach((row) => {
-    pillarMap.set(row.id, row.slug);
-  });
+  const posts = await Promise.all(
+    mdxFiles.map(async (file) => {
+      const slug = file.replace(/\.mdx$/, '');
+      const absolutePath = path.join(BLOG_CONTENT_DIR, file);
+      const source = await fs.readFile(absolutePath, 'utf8');
+      const { data, content } = matter(source);
 
-  const articlePillars = new Map<string, HolisticPillar[]>();
-  pivotRows.forEach((pivot) => {
-    const pillarSlug = pillarMap.get(pivot.pillar_id);
-    if (!pillarSlug) return;
-    const list = articlePillars.get(pivot.article_id) ?? [];
-    list.push(pillarSlug as HolisticPillar);
-    articlePillars.set(pivot.article_id, list);
-  });
+      const pillars = Array.isArray(data.pillars)
+        ? (data.pillars.filter((item): item is HolisticPillar => typeof item === 'string') as HolisticPillar[])
+        : undefined;
 
-  return articles.map((row) => mapArticleRow(row, articlePillars.get(row.id)));
-}
+      const tags = Array.isArray(data.tags)
+        ? data.tags.filter((tag: unknown): tag is string => typeof tag === 'string')
+        : undefined;
 
-function mapArticleRow(row: ArticleRow, pillars?: HolisticPillar[]): BlogMeta {
-  const publishedAt = row.published_at ? new Date(row.published_at).toISOString() : new Date().toISOString();
-  return {
-    slug: row.slug,
-    title: row.title,
-    date: publishedAt,
-    excerpt: row.excerpt ?? undefined,
-    category: row.category ?? undefined,
-    tags: row.tags ?? [],
-    pillars
-  };
+      const post: BlogMeta = {
+        slug,
+        title: typeof data.title === 'string' ? data.title : slug,
+        date: normaliseDate(data.date),
+        excerpt: createExcerpt(content, data.excerpt),
+        category: typeof data.category === 'string' ? data.category : undefined,
+        tags,
+        pillars
+      };
+
+      return post;
+    })
+  );
+
+  return posts.sort((a, b) => (a.date > b.date ? -1 : a.date < b.date ? 1 : 0));
 }

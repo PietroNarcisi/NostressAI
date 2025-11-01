@@ -43,7 +43,8 @@ export async function login(_: AuthResult, formData: FormData): Promise<AuthResu
 
   if (!profile || profile.role !== 'admin') {
     revalidatePath('/profile');
-    redirect('/profile');
+    revalidatePath('/');
+    redirect('/');
   }
 
   revalidatePath('/admin');

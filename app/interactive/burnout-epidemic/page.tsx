@@ -62,7 +62,7 @@ export default function BurnoutInteractivePage() {
         </section>
         <section id="causes" className="space-y-12">
           <div className="text-center max-w-2xl mx-auto">
-            <h2 className="text-3xl font-bold tracking-tight mb-3">The "Always On" Culture</h2>
+            <h2 className="text-3xl font-bold tracking-tight mb-3">The &ldquo;Always On&rdquo; Culture</h2>
             <p className="text-neutral-600 dark:text-neutral-300">Digital saturation blurs boundaries and drives technostress. Core drivers summarised below.</p>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">

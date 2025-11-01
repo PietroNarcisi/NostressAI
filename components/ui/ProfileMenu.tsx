@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import * as Dialog from '@radix-ui/react-dialog';
@@ -9,28 +9,17 @@ import { Loader2, LogOut, Settings, ShieldCheck, User, X } from 'lucide-react';
 import { createSupabaseBrowserClient } from '@/lib/supabase/browser';
 import { logout } from '@/app/login/actions';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/AvatarFallback';
-
-interface AuthState {
-  loading: boolean;
-  email?: string;
-  role?: string | null;
-  avatarUrl?: string | null;
-  displayName?: string | null;
-}
+import { useAuth } from '@/lib/auth-context';
 
 interface ProfileMenuProps {
   className?: string;
 }
 
-type ProfileUpdatedDetail = {
-  displayName?: string | null;
-  avatarUrl?: string | null;
-};
-
 export function ProfileMenu({ className }: ProfileMenuProps) {
   const pathname = usePathname();
   const supabase = useMemo(() => createSupabaseBrowserClient(), []);
-  const [auth, setAuth] = useState<AuthState>({ loading: true });
+  const { loading, user, profile, refresh } = useAuth();
+
   const [open, setOpen] = useState(false);
   const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [email, setEmail] = useState('');
@@ -40,104 +29,35 @@ export function ProfileMenu({ className }: ProfileMenuProps) {
   const [error, setError] = useState<string | undefined>();
   const [signOutPending, setSignOutPending] = useState(false);
 
-  const loadFromSession = useCallback(async (session?: Awaited<ReturnType<typeof supabase.auth.getSession>>['data']['session']) => {
-    const currentSession = session ?? (await supabase.auth.getSession()).data.session;
-    const user = currentSession?.user ?? null;
-    if (!user) {
-      setAuth({ loading: false });
-      return;
-    }
-    let { data: profile } = await supabase
-      .from('profiles')
-      .select('role, avatar_url, display_name')
-      .eq('user_id', user.id)
-      .maybeSingle();
-
-    if (!profile) {
-      await supabase
-        .from('profiles')
-        .upsert({ user_id: user.id });
-      const refreshed = await supabase
-        .from('profiles')
-        .select('role, avatar_url, display_name')
-        .eq('user_id', user.id)
-        .maybeSingle();
-      profile = refreshed.data ?? null;
-    }
-
-    setAuth({
-      loading: false,
-      email: user.email ?? undefined,
-      role: profile?.role ?? null,
-      avatarUrl: profile?.avatar_url ?? null,
-      displayName: profile?.display_name ?? null
-    });
-  }, [supabase]);
-
-  useEffect(() => {
-    let active = true;
-    void loadFromSession();
-    const {
-      data: { subscription }
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (active) void loadFromSession(session);
-    });
-    const handleProfileUpdated = (event: Event) => {
-      const detail = (event as CustomEvent<ProfileUpdatedDetail>).detail;
-      if (detail) {
-        setAuth((previous) => {
-          if (!previous.email) {
-            return previous;
-          }
-          const nextDisplayName =
-            detail.displayName !== undefined ? detail.displayName ?? null : previous.displayName ?? null;
-          const nextAvatarUrl =
-            detail.avatarUrl !== undefined ? detail.avatarUrl ?? null : previous.avatarUrl ?? null;
-          return {
-            ...previous,
-            displayName: nextDisplayName,
-            avatarUrl: nextAvatarUrl
-          };
-        });
-      }
-      void loadFromSession();
-    };
-    window.addEventListener('profile:updated', handleProfileUpdated);
-    return () => {
-      active = false;
-      subscription.unsubscribe();
-      window.removeEventListener('profile:updated', handleProfileUpdated);
-    };
-  }, [loadFromSession, supabase]);
-
   useEffect(() => {
     setOpen(false);
   }, [pathname]);
 
+  useEffect(() => {
+    // Refresh profile when dialog closes (important for OAuth flows)
+    if (!open) {
+      void refresh();
+    }
+  }, [open, refresh]);
+
+  useEffect(() => {
+    const handleProfileUpdated = () => {
+      void refresh();
+    };
+    window.addEventListener('profile:updated', handleProfileUpdated);
+    return () => {
+      window.removeEventListener('profile:updated', handleProfileUpdated);
+    };
+  }, [refresh]);
+
   const initials = useMemo(() => {
-    const source = auth.displayName || auth.email || '??';
+    const source = profile?.displayName || user?.email || '??';
     return source
       .split(' ')
       .map((part) => part[0]?.toUpperCase())
       .join('')
       .slice(0, 2);
-  }, [auth.displayName, auth.email]);
-
-  async function ensureProfile() {
-    const {
-      data: { session }
-    } = await supabase.auth.getSession();
-    const user = session?.user;
-    if (!user) return;
-    const { data: existing } = await supabase
-      .from('profiles')
-      .select('user_id')
-      .eq('user_id', user.id)
-      .maybeSingle();
-    if (!existing) {
-      await supabase.from('profiles').insert({ user_id: user.id });
-    }
-  }
+  }, [profile?.displayName, user?.email]);
 
   async function handleEmailSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -158,15 +78,14 @@ export function ProfileMenu({ className }: ProfileMenuProps) {
         setPending(false);
         return;
       }
-      await ensureProfile();
-      await loadFromSession();
+      await refresh();
       setPending(false);
       setOpen(false);
       setEmail('');
       setPassword('');
-      window.location.href = '/profile';
+      window.location.href = '/';
     } else {
-      const redirectTo = `${window.location.origin}/auth/callback?redirect_to=${encodeURIComponent('/profile')}`;
+      const redirectTo = `${window.location.origin}/auth/callback?redirect_to=${encodeURIComponent('/')}`;
       const { error: signUpError } = await supabase.auth.signUp({
         email,
         password,
@@ -177,8 +96,8 @@ export function ProfileMenu({ className }: ProfileMenuProps) {
       if (signUpError) {
         setError(signUpError.message);
       } else {
-      setMessage('Check your inbox to confirm your email. You can sign in once it is verified.');
-      setMode('signin');
+        setMessage('Check your inbox to confirm your email. You can sign in once it is verified.');
+        setMode('signin');
       }
       setPending(false);
     }
@@ -188,19 +107,23 @@ export function ProfileMenu({ className }: ProfileMenuProps) {
     setPending(true);
     setError(undefined);
     setMessage(undefined);
-    const redirectTo = `${window.location.origin}/auth/callback?redirect_to=${encodeURIComponent('/profile')}`;
+    const redirectTo = `${window.location.origin}/auth/callback?redirect_to=${encodeURIComponent('/')}`;
     const options: Parameters<typeof supabase.auth.signInWithOAuth>[0]['options'] = { redirectTo };
     if (mode === 'signup') {
       options.queryParams = { prompt: 'consent' };
     }
+    console.log('Starting Google OAuth with redirect:', redirectTo);
     const { error: oauthError } = await supabase.auth.signInWithOAuth({ provider: 'google', options });
     if (oauthError) {
+      console.error('OAuth error:', oauthError);
       setError(oauthError.message);
       setPending(false);
+    } else {
+      console.log('OAuth initiated, redirecting to Google...');
     }
   }
 
-  const handleSignOut = useCallback(async () => {
+  async function handleSignOut() {
     setSignOutPending(true);
     setError(undefined);
     setMessage(undefined);
@@ -210,11 +133,17 @@ export function ProfileMenu({ className }: ProfileMenuProps) {
     } catch (err) {
       console.error(err);
     }
-    await loadFromSession();
+    await refresh();
     setSignOutPending(false);
     setOpen(false);
     window.location.href = '/';
-  }, [loadFromSession, supabase]);
+  }
+
+  const isAuthenticated = !!user;
+  const currentEmail = user?.email ?? undefined;
+  const displayName = profile?.displayName ?? currentEmail ?? null;
+  const avatarUrl = profile?.avatarUrl ?? null;
+  const role = profile?.role ?? null;
 
   return (
     <Dialog.Root open={open} onOpenChange={setOpen}>
@@ -222,17 +151,18 @@ export function ProfileMenu({ className }: ProfileMenuProps) {
         <button
           type="button"
           className={`flex items-center gap-2 rounded-full border border-neutral-300 px-3 py-1 text-xs font-medium text-neutral-700 transition-colors hover:bg-neutral-100 dark:border-neutral-700 dark:text-neutral-100 dark:hover:bg-neutral-800 ${className ?? ''}`}
+          disabled={loading && !isAuthenticated}
         >
           <Avatar className="h-7 w-7 overflow-hidden rounded-full border border-neutral-300 dark:border-neutral-700">
-            {auth.avatarUrl ? (
-              <AvatarImage src={auth.avatarUrl} alt={auth.displayName ?? auth.email ?? 'Profile'} className="h-full w-full object-cover" />
+            {avatarUrl ? (
+              <AvatarImage src={avatarUrl} alt={displayName ?? currentEmail ?? 'Profile'} className="h-full w-full object-cover" />
             ) : (
               <AvatarFallback className="flex h-full w-full items-center justify-center bg-primary-100 text-primary-700 dark:bg-primary-900/40 dark:text-primary-300 text-xs font-semibold">
                 {initials}
               </AvatarFallback>
             )}
           </Avatar>
-          <span className="hidden sm:inline">{auth.email ? auth.displayName ?? auth.email : 'Profile'}</span>
+          <span className="hidden sm:inline">{isAuthenticated ? displayName ?? currentEmail : 'Profile'}</span>
         </button>
       </Dialog.Trigger>
       <Dialog.Portal>
@@ -240,14 +170,14 @@ export function ProfileMenu({ className }: ProfileMenuProps) {
         <Dialog.Content className="fixed right-4 top-20 z-[60] w-[360px] max-w-full rounded-2xl border border-neutral-200 bg-white p-6 shadow-xl focus:outline-none dark:border-neutral-800 dark:bg-neutral-900 sm:right-6">
           <div className="flex items-start justify-between">
             <Dialog.Title className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
-              {auth.email ? 'Account' : mode === 'signin' ? 'Welcome back' : 'Join NoStress AI'}
+              {isAuthenticated ? 'Account' : mode === 'signin' ? 'Welcome back' : 'Join NoStress AI'}
             </Dialog.Title>
             <Dialog.Close className="rounded-full p-1 text-neutral-500 transition hover:bg-neutral-100 dark:text-neutral-400 dark:hover:bg-neutral-800">
               <X className="h-4 w-4" />
             </Dialog.Close>
           </div>
 
-          {!auth.email ? (
+          {!isAuthenticated ? (
             <div className="mt-6 space-y-5 text-sm text-neutral-600 dark:text-neutral-300">
               <div className="flex items-center gap-2 text-xs text-neutral-500 dark:text-neutral-400">
                 <button
@@ -338,8 +268,8 @@ export function ProfileMenu({ className }: ProfileMenuProps) {
             <div className="mt-6 space-y-6 text-sm text-neutral-600 dark:text-neutral-300">
               <div className="flex items-center gap-3">
                 <Avatar className="h-12 w-12 overflow-hidden rounded-full border border-neutral-200 dark:border-neutral-700">
-                  {auth.avatarUrl ? (
-                    <AvatarImage src={auth.avatarUrl} alt={auth.displayName ?? auth.email} className="h-full w-full object-cover" />
+                  {avatarUrl ? (
+                    <AvatarImage src={avatarUrl} alt={displayName ?? currentEmail ?? 'Profile'} className="h-full w-full object-cover" />
                   ) : (
                     <AvatarFallback className="flex h-full w-full items-center justify-center bg-primary-100 text-primary-700 dark:bg-primary-900/40 dark:text-primary-300 text-base font-semibold">
                       {initials}
@@ -347,8 +277,8 @@ export function ProfileMenu({ className }: ProfileMenuProps) {
                   )}
                 </Avatar>
                 <div>
-                  <p className="font-semibold text-neutral-900 dark:text-neutral-100">{auth.displayName ?? auth.email}</p>
-                  <p className="text-xs text-neutral-500 dark:text-neutral-400">{auth.email}</p>
+                  <p className="font-semibold text-neutral-900 dark:text-neutral-100">{displayName ?? currentEmail}</p>
+                  <p className="text-xs text-neutral-500 dark:text-neutral-400">{currentEmail}</p>
                 </div>
               </div>
               <div className="space-y-2">
@@ -358,7 +288,7 @@ export function ProfileMenu({ className }: ProfileMenuProps) {
                 >
                   <Settings className="h-4 w-4" /> Profile settings
                 </Link>
-                {auth.role === 'admin' && (
+                {role === 'admin' && (
                   <Link
                     href="/admin"
                     className="flex items-center gap-2 rounded-full border border-primary-300 bg-primary-50 px-4 py-2 text-sm font-medium text-primary-700 transition hover:bg-primary-100 dark:border-primary-700/40 dark:bg-primary-900/20 dark:text-primary-200 dark:hover:bg-primary-900/40"
